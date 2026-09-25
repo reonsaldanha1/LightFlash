@@ -26,7 +26,7 @@ import {
   ColorFilter,
 } from './types/flashlight';
 import { TacticalSwitch } from './components/TacticalSwitch';
-import { ScreenLightOverlay } from './components/ScreenLightOverlay';
+import { ScreenLightOverlay, IntensityTarget } from './components/ScreenLightOverlay';
 import { StrobeController } from './components/StrobeController';
 import { SosBeacon } from './components/SosBeacon';
 import { BatteryMonitor } from './components/BatteryMonitor';
@@ -65,10 +65,22 @@ export default function App() {
   const [mode, setMode] = useState<FlashlightMode>(initialPrefs.current.mode);
   const [lightSource, setLightSource] = useState<LightSource>(initialPrefs.current.lightSource); // 'torch' by default
   const [brightness, setBrightness] = useState<number>(initialPrefs.current.brightness);
+  const [torchStrength, setTorchStrength] = useState<number>(initialPrefs.current.brightness || 100);
+  const [intensityTarget, setIntensityTarget] = useState<IntensityTarget>('both');
   const [activeColor, setActiveColor] = useState<ColorFilter>(
     getColorFilterById(initialPrefs.current.activeColorId)
   );
   const [isNightVision, setIsNightVision] = useState<boolean>(initialPrefs.current.isNightVision); // false by default
+
+  const handleTorchStrengthChange = (val: number) => {
+    setTorchStrength(val);
+    torchController.setTorchStrength(val);
+  };
+
+  const handleBrightnessChange = (val: number) => {
+    setBrightness(val);
+    torchController.setScreenBrightness(val);
+  };
 
   // Strobe configuration
   const [strobeHz, setStrobeHz] = useState<number>(initialPrefs.current.strobeHz);
@@ -140,18 +152,18 @@ export default function App() {
 
   // Synchronize Hardware Torch LED
   const applyHardwareTorch = useCallback(
-    async (state: boolean, keepTrackAlive: boolean = false) => {
+    async (state: boolean, keepTrackAlive: boolean = false, strength?: number) => {
       if (lightSource === 'screen') {
         await torchController.setTorch(false, false);
         return;
       }
       try {
-        await torchController.setTorch(state, keepTrackAlive);
+        await torchController.setTorch(state, keepTrackAlive, strength ?? torchStrength);
       } catch {
         // Fallback gracefully
       }
     },
-    [lightSource]
+    [lightSource, torchStrength]
   );
 
   // Turn off hardware torch on unmount
@@ -162,12 +174,12 @@ export default function App() {
     };
   }, []);
 
-  // 1. Steady Mode Hardware Torch Synchronization (Keeps light solidly ON)
+  // 1. Steady Mode Hardware Torch Synchronization (Keeps light solidly ON with selected strength)
   useEffect(() => {
     if (mode === 'steady') {
-      applyHardwareTorch(isLightOn, false);
+      applyHardwareTorch(isLightOn, false, torchStrength);
     }
-  }, [isLightOn, mode, applyHardwareTorch]);
+  }, [isLightOn, mode, torchStrength, applyHardwareTorch]);
 
   // 2. Strobe Timer Loop
   useEffect(() => {
@@ -300,10 +312,13 @@ export default function App() {
     setMode('steady');
     setActiveTab('light');
     setBrightness(100);
+    setTorchStrength(100);
+    torchController.setTorchStrength(100);
+    torchController.setScreenBrightness(100);
     setActiveColor(COLOR_FILTERS[1]); // Daylight White 6500K
     setIsNightVision(false);
     setLightSource('torch'); // Ensure rear hardware torch is activated
-    applyHardwareTorch(true, false);
+    applyHardwareTorch(true, false, 100);
   };
 
   // Quick Action: Instant SOS Distress Loop
@@ -761,7 +776,11 @@ export default function App() {
           <ScreenLightOverlay
             isOn={isLightOn}
             brightness={brightness}
-            onBrightnessChange={setBrightness}
+            onBrightnessChange={handleBrightnessChange}
+            torchStrength={torchStrength}
+            onTorchStrengthChange={handleTorchStrengthChange}
+            intensityTarget={intensityTarget}
+            onIntensityTargetChange={setIntensityTarget}
             activeColor={activeColor}
             onSelectColor={setActiveColor}
             isNightVision={isNightVision}
@@ -794,15 +813,19 @@ export default function App() {
             <div className="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl">
               <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
                 <span>STROBE BEAM LUMINANCE</span>
-                <span className="font-bold text-slate-200">{brightness}%</span>
+                <span className="font-bold text-slate-200">{torchStrength}%</span>
               </div>
               <input
                 type="range"
                 min="10"
                 max="100"
-                value={brightness}
-                onChange={(e) => setBrightness(Number(e.target.value))}
-                className="w-full"
+                value={torchStrength}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  handleTorchStrengthChange(val);
+                  handleBrightnessChange(val);
+                }}
+                className="w-full accent-amber-500 cursor-pointer"
               />
             </div>
           </div>

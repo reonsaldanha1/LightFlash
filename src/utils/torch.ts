@@ -6,10 +6,47 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
 export interface NativeTorchPlugin {
-  isAvailable(): Promise<{ available: boolean }>;
-  setTorch(options: { enabled: boolean }): Promise<{ success: boolean; isOn: boolean }>;
-  toggleTorch(): Promise<{ success: boolean; isOn: boolean }>;
-  getTorchState(): Promise<{ isOn: boolean }>;
+  isAvailable(): Promise<{
+    available: boolean;
+    supportsStrength?: boolean;
+    maxStrength?: number;
+    currentStrength?: number;
+  }>;
+  setTorch(options: {
+    enabled: boolean;
+    strength?: number;
+  }): Promise<{
+    success: boolean;
+    isOn: boolean;
+    strength: number;
+    maxStrength?: number;
+    supportsStrength?: boolean;
+  }>;
+  setTorchStrength(options: {
+    strength: number;
+  }): Promise<{
+    success: boolean;
+    strength: number;
+    isOn: boolean;
+    maxStrength?: number;
+    supportsStrength?: boolean;
+  }>;
+  setScreenBrightness(options: {
+    brightness: number;
+  }): Promise<{
+    success: boolean;
+  }>;
+  toggleTorch(): Promise<{
+    success: boolean;
+    isOn: boolean;
+    strength: number;
+  }>;
+  getTorchState(): Promise<{
+    isOn: boolean;
+    strength: number;
+    maxStrength?: number;
+    supportsStrength?: boolean;
+  }>;
   requestPinWidget(): Promise<{ supported: boolean; success: boolean }>;
 }
 
@@ -27,6 +64,9 @@ class TorchController {
   private track: MediaStreamTrack | null = null;
   private isTorchSupported: boolean = false;
   private isLit: boolean = false;
+  private currentStrength: number = 100;
+  private supportsHardwareStrength: boolean = false;
+  private maxTorchStrength: number = 1;
 
   /**
    * Test whether hardware torch is available
@@ -36,6 +76,9 @@ class TorchController {
       try {
         const res = await NativeTorch.isAvailable();
         this.isTorchSupported = res.available;
+        this.supportsHardwareStrength = !!res.supportsStrength;
+        this.maxTorchStrength = res.maxStrength || 1;
+        if (res.currentStrength) this.currentStrength = res.currentStrength;
         return res.available;
       } catch {
         this.isTorchSupported = true;
@@ -99,16 +142,34 @@ class TorchController {
   }
 
   /**
-   * Set physical torch LED state
+   * Set physical torch LED state with optional brightness level (1-100%)
    * @param on whether to turn LED on or off
-   * @param keepTrackAlive if true, avoids stopping the camera stream (crucial for rapid strobe/SOS in browser)
+   * @param keepTrackAlive if true, avoids stopping the camera stream (crucial for rapid strobe/SOS)
+   * @param strength percentage intensity (1-100)
    */
-  public async setTorch(on: boolean, keepTrackAlive: boolean = false): Promise<boolean> {
+  public async setTorch(
+    on: boolean,
+    keepTrackAlive: boolean = false,
+    strength?: number
+  ): Promise<boolean> {
+    if (strength !== undefined) {
+      this.currentStrength = Math.max(1, Math.min(100, Math.round(strength)));
+    }
+
     // 1. Primary: Native Android hardware camera torch via CameraManager
     if (Capacitor.isNativePlatform()) {
       try {
-        const res = await NativeTorch.setTorch({ enabled: on });
+        const res = await NativeTorch.setTorch({
+          enabled: on,
+          strength: this.currentStrength,
+        });
         this.isLit = res.isOn;
+        if (res.supportsStrength !== undefined) {
+          this.supportsHardwareStrength = res.supportsStrength;
+        }
+        if (res.maxStrength !== undefined) {
+          this.maxTorchStrength = res.maxStrength;
+        }
         return res.success;
       } catch (err) {
         console.warn('NativeTorch plugin error, falling back to web API:', err);
@@ -155,12 +216,58 @@ class TorchController {
     }
   }
 
+  /**
+   * Set torch hardware intensity level (1-100%)
+   */
+  public async setTorchStrength(strength: number): Promise<boolean> {
+    this.currentStrength = Math.max(1, Math.min(100, Math.round(strength)));
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const res = await NativeTorch.setTorchStrength({ strength: this.currentStrength });
+        this.isLit = res.isOn;
+        return res.success;
+      } catch (err) {
+        console.warn('NativeTorch setStrength error:', err);
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Set native device screen brightness (1-100%)
+   */
+  public async setScreenBrightness(brightness: number): Promise<boolean> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await NativeTorch.setScreenBrightness({
+          brightness: Math.max(1, Math.min(100, Math.round(brightness))),
+        });
+        return true;
+      } catch (err) {
+        console.warn('NativeTorch setScreenBrightness error:', err);
+      }
+    }
+    return true;
+  }
+
   public getIsLit(): boolean {
     return this.isLit;
   }
 
   public getIsTorchSupported(): boolean {
     return this.isTorchSupported;
+  }
+
+  public getCurrentStrength(): number {
+    return this.currentStrength;
+  }
+
+  public getSupportsHardwareStrength(): boolean {
+    return this.supportsHardwareStrength;
+  }
+
+  public getMaxTorchStrength(): number {
+    return this.maxTorchStrength;
   }
 
   /**
