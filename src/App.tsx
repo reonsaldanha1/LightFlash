@@ -130,6 +130,12 @@ export default function App() {
         setActiveColor(COLOR_FILTERS[0]); // Red
       }
     }
+
+    try {
+      if (typeof window !== 'undefined' && 'screen' in window && screen.orientation && 'lock' in screen.orientation) {
+        (screen.orientation as any).lock('portrait').catch(() => {});
+      }
+    } catch {}
   }, []);
 
   // Synchronize Hardware Torch LED
