@@ -16,7 +16,8 @@ public class TorchHelper {
     private static synchronized void ensureInit(Context context) {
         if (context == null) return;
         try {
-            final CameraManager cm = (CameraManager) context.getApplicationContext().getSystemService(Context.CAMERA_SERVICE);
+            final Context appContext = context.getApplicationContext();
+            final CameraManager cm = (CameraManager) appContext.getSystemService(Context.CAMERA_SERVICE);
             if (cm == null) return;
 
             if (rearCameraId == null) {
@@ -34,7 +35,7 @@ public class TorchHelper {
                 }
             }
 
-            if (!callbackRegistered && cm != null) {
+            if (!callbackRegistered) {
                 cm.registerTorchCallback(new CameraManager.TorchCallback() {
                     @Override
                     public void onTorchModeChanged(String cameraId, boolean enabled) {
@@ -42,6 +43,9 @@ public class TorchHelper {
                         if (rearCameraId == null || cameraId.equals(rearCameraId)) {
                             isTorchOn = enabled;
                             Log.d(TAG, "Hardware torch state callback: " + enabled);
+                            try {
+                                LightflashAppWidget.updateAllWidgets(appContext);
+                            } catch (Exception ignored) {}
                         }
                     }
                 }, null);
@@ -66,6 +70,9 @@ public class TorchHelper {
                 cm.setTorchMode(rearCameraId, enabled);
                 isTorchOn = enabled;
                 Log.d(TAG, "Torch set to: " + enabled);
+                try {
+                    LightflashAppWidget.updateAllWidgets(context.getApplicationContext());
+                } catch (Exception ignored) {}
                 return true;
             }
         } catch (CameraAccessException e) {

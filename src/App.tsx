@@ -156,44 +156,52 @@ export default function App() {
     };
   }, []);
 
-  // Strobe Timer Loop
+  // 1. Steady Mode Hardware Torch Synchronization (Keeps light solidly ON)
   useEffect(() => {
-    let strobeTimer: ReturnType<typeof setInterval> | null = null;
+    if (mode === 'steady') {
+      applyHardwareTorch(isLightOn, false);
+    }
+  }, [isLightOn, mode, applyHardwareTorch]);
 
-    if (isLightOn && mode === 'strobe') {
-      const intervalMs = Math.max(35, Math.round(1000 / (strobeHz * 2)));
-      let flash = true;
-
-      strobeTimer = setInterval(() => {
-        flash = !flash;
-        setStrobeFlashState(flash);
-
-        if (flash) {
-          applyHardwareTorch(true, true);
-          if (strobeAudioClick) playStrobeTick();
-        } else {
-          applyHardwareTorch(false, true);
-        }
-      }, intervalMs);
-    } else {
+  // 2. Strobe Timer Loop
+  useEffect(() => {
+    if (!isLightOn || mode !== 'strobe') {
       setStrobeFlashState(false);
-      if (mode !== 'sos' && isLightOn) {
-        applyHardwareTorch(true, false);
-      } else if (!isLightOn) {
-        applyHardwareTorch(false, false);
-      }
+      return;
     }
 
+    const intervalMs = Math.max(35, Math.round(1000 / (strobeHz * 2)));
+    let flash = true;
+
+    const strobeTimer = setInterval(() => {
+      flash = !flash;
+      setStrobeFlashState(flash);
+
+      if (flash) {
+        applyHardwareTorch(true, true);
+        if (strobeAudioClick) playStrobeTick();
+      } else {
+        applyHardwareTorch(false, true);
+      }
+    }, intervalMs);
+
     return () => {
-      if (strobeTimer) clearInterval(strobeTimer);
+      clearInterval(strobeTimer);
       if (mode === 'strobe') {
         applyHardwareTorch(false, false);
       }
     };
   }, [isLightOn, mode, strobeHz, strobeAudioClick, applyHardwareTorch]);
 
-  // SOS Morse Code Loop (... --- ...)
+  // 3. SOS Morse Code Loop (... --- ...)
   useEffect(() => {
+    if (!isLightOn || mode !== 'sos') {
+      stopMorseTone();
+      setSosActiveSymbol(-1);
+      setStrobeFlashState(false);
+      return;
+    }
+
     let isCancelled = false;
 
     // Standard ITU Morse sequence:
@@ -260,36 +268,24 @@ export default function App() {
       stopMorseTone();
       setSosActiveSymbol(-1);
       setStrobeFlashState(false);
-      applyHardwareTorch(false, false);
     }
 
-    if (isLightOn && mode === 'sos') {
-      runSosLoop();
-    } else {
-      stopMorseTone();
-      setSosActiveSymbol(-1);
-      setStrobeFlashState(false);
-      applyHardwareTorch(false, false);
-    }
+    runSosLoop();
 
     return () => {
       isCancelled = true;
       stopMorseTone();
-      applyHardwareTorch(false, false);
+      setSosActiveSymbol(-1);
+      setStrobeFlashState(false);
+      if (mode === 'sos') {
+        applyHardwareTorch(false, false);
+      }
     };
   }, [isLightOn, mode, sosAudioTone, applyHardwareTorch]);
 
   // Main Toggle
   const handleTogglePower = () => {
-    setIsLightOn((prev) => {
-      const next = !prev;
-      if (!next) {
-        applyHardwareTorch(false, false);
-      } else if (mode === 'steady') {
-        applyHardwareTorch(true, false);
-      }
-      return next;
-    });
+    setIsLightOn((prev) => !prev);
   };
 
   // Quick Action: Instant Max Lumens Burst
