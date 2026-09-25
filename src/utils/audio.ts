@@ -97,8 +97,9 @@ export function stopMorseTone(): void {
     const ctx = getAudioContext();
     if (!ctx || !currentMorseOsc || !currentMorseGain) return;
 
-    currentMorseGain.gain.setValueAtTime(currentMorseGain.gain.value, ctx.currentTime);
-    currentMorseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.01);
+    const currentVal = Math.max(0.0001, currentMorseGain.gain.value);
+    currentMorseGain.gain.setValueAtTime(currentVal, ctx.currentTime);
+    currentMorseGain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.01);
 
     const osc = currentMorseOsc;
     setTimeout(() => {

@@ -53,8 +53,14 @@ export const SosBeacon: React.FC<SosBeaconProps> = ({
 
   const copyDistressDispatch = () => {
     const timeStr = new Date().toISOString();
-    const latStr = gps.latitude !== null ? `${gps.latitude.toFixed(5)}°` : 'UNKNOWN';
-    const lngStr = gps.longitude !== null ? `${gps.longitude.toFixed(5)}°` : 'UNKNOWN';
+    const latStr =
+      gps.latitude !== null
+        ? `${Math.abs(gps.latitude).toFixed(5)}°${gps.latitude >= 0 ? 'N' : 'S'}`
+        : 'UNKNOWN';
+    const lngStr =
+      gps.longitude !== null
+        ? `${Math.abs(gps.longitude).toFixed(5)}°${gps.longitude >= 0 ? 'E' : 'W'}`
+        : 'UNKNOWN';
     const altStr = gps.altitude !== null ? `${gps.altitude}m` : 'N/A';
 
     const dispatchText = `MAYDAY DISTRESS DISPATCH (LIGHTFLASH BEACON ACTIVE)\nTIME: ${timeStr}\nCOORDINATES: LAT ${latStr}, LNG ${lngStr} (±${gps.accuracy || 15}m)\nALTITUDE: ${altStr}\nSTATUS: Emergency SOS Beacon Loop Engaged.\nAUDIO/OPTICAL: 850Hz Continuous ITU Morse SOS (... --- ...).`;

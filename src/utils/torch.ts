@@ -82,8 +82,10 @@ class TorchController {
 
   /**
    * Set physical torch LED state
+   * @param on whether to turn LED on or off
+   * @param keepTrackAlive if true, avoids stopping the camera stream (crucial for rapid strobe/SOS)
    */
-  public async setTorch(on: boolean): Promise<boolean> {
+  public async setTorch(on: boolean, keepTrackAlive: boolean = false): Promise<boolean> {
     try {
       if (!on) {
         if (this.track && this.track.readyState === 'live') {
@@ -95,7 +97,9 @@ class TorchController {
             });
           } catch {}
         }
-        this.stopStream();
+        if (!keepTrackAlive) {
+          this.stopStream();
+        }
         this.isLit = false;
         return true;
       }

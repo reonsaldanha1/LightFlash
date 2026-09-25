@@ -61,7 +61,7 @@ export function loadPreferences(): UserPreferences {
       activeColorId: typeof parsed.activeColorId === 'string'
         ? parsed.activeColorId
         : RECOMMENDED_DEFAULTS.activeColorId,
-      strobeHz: typeof parsed.strobeHz === 'number' && parsed.strobeHz >= 1 && parsed.strobeHz <= 20
+      strobeHz: typeof parsed.strobeHz === 'number' && parsed.strobeHz >= 1 && parsed.strobeHz <= 25
         ? parsed.strobeHz
         : RECOMMENDED_DEFAULTS.strobeHz,
       strobeAudioClick: typeof parsed.strobeAudioClick === 'boolean'

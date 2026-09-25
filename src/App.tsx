@@ -134,13 +134,13 @@ export default function App() {
 
   // Synchronize Hardware Torch LED
   const applyHardwareTorch = useCallback(
-    async (state: boolean) => {
+    async (state: boolean, keepTrackAlive: boolean = false) => {
       if (lightSource === 'screen') {
-        await torchController.setTorch(false);
+        await torchController.setTorch(false, false);
         return;
       }
       try {
-        await torchController.setTorch(state);
+        await torchController.setTorch(state, keepTrackAlive);
       } catch {
         // Fallback gracefully
       }
@@ -169,23 +169,26 @@ export default function App() {
         setStrobeFlashState(flash);
 
         if (flash) {
-          applyHardwareTorch(true);
+          applyHardwareTorch(true, true);
           if (strobeAudioClick) playStrobeTick();
         } else {
-          applyHardwareTorch(false);
+          applyHardwareTorch(false, true);
         }
       }, intervalMs);
     } else {
       setStrobeFlashState(false);
       if (mode !== 'sos' && isLightOn) {
-        applyHardwareTorch(true);
+        applyHardwareTorch(true, false);
       } else if (!isLightOn) {
-        applyHardwareTorch(false);
+        applyHardwareTorch(false, false);
       }
     }
 
     return () => {
       if (strobeTimer) clearInterval(strobeTimer);
+      if (mode === 'strobe') {
+        applyHardwareTorch(false, false);
+      }
     };
   }, [isLightOn, mode, strobeHz, strobeAudioClick, applyHardwareTorch]);
 
@@ -238,11 +241,11 @@ export default function App() {
           setSosActiveSymbol(step.symbolIndex);
 
           if (step.isOn) {
-            applyHardwareTorch(true);
+            applyHardwareTorch(true, true);
             setStrobeFlashState(true);
             if (sosAudioTone) startMorseTone(850);
           } else {
-            applyHardwareTorch(false);
+            applyHardwareTorch(false, true);
             setStrobeFlashState(false);
             stopMorseTone();
           }
@@ -257,6 +260,7 @@ export default function App() {
       stopMorseTone();
       setSosActiveSymbol(-1);
       setStrobeFlashState(false);
+      applyHardwareTorch(false, false);
     }
 
     if (isLightOn && mode === 'sos') {
@@ -265,11 +269,13 @@ export default function App() {
       stopMorseTone();
       setSosActiveSymbol(-1);
       setStrobeFlashState(false);
+      applyHardwareTorch(false, false);
     }
 
     return () => {
       isCancelled = true;
       stopMorseTone();
+      applyHardwareTorch(false, false);
     };
   }, [isLightOn, mode, sosAudioTone, applyHardwareTorch]);
 
@@ -278,9 +284,9 @@ export default function App() {
     setIsLightOn((prev) => {
       const next = !prev;
       if (!next) {
-        applyHardwareTorch(false);
+        applyHardwareTorch(false, false);
       } else if (mode === 'steady') {
-        applyHardwareTorch(true);
+        applyHardwareTorch(true, false);
       }
       return next;
     });
@@ -328,7 +334,11 @@ export default function App() {
   // Copy GPS Coordinates
   const copyGpsCoords = () => {
     if (gps.latitude === null || gps.longitude === null) return;
-    const text = `LIGHTFLASH GPS: ${gps.latitude.toFixed(5)}°N, ${gps.longitude.toFixed(5)}°W (Alt: ${gps.altitude || 0}m, Acc: ±${gps.accuracy}m)`;
+    const latDir = gps.latitude >= 0 ? 'N' : 'S';
+    const lngDir = gps.longitude >= 0 ? 'E' : 'W';
+    const latFormatted = `${Math.abs(gps.latitude).toFixed(5)}°${latDir}`;
+    const lngFormatted = `${Math.abs(gps.longitude).toFixed(5)}°${lngDir}`;
+    const text = `LIGHTFLASH GPS: ${latFormatted}, ${lngFormatted} (Alt: ${gps.altitude || 0}m, Acc: ±${gps.accuracy}m)`;
     navigator.clipboard.writeText(text);
     setCopiedCoords(true);
     setTimeout(() => setCopiedCoords(false), 2000);
