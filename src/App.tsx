@@ -36,7 +36,7 @@ import { NightModeToggle } from './components/NightModeToggle';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { MorseReferenceModal } from './components/MorseReferenceModal';
 import { PreferencesModal } from './components/PreferencesModal';
-import { torchController } from './utils/torch';
+import { NativeTorch, torchController } from './utils/torch';
 import {
   playTacticalClick,
   startMorseTone,
@@ -123,6 +123,7 @@ export default function App() {
   }, [isNightVision]);
 
   // Parse URL search params for PWA home screen shortcuts (?mode=max, ?mode=sos, ?mode=night)
+  // and handle Native Android Widget Intents (e.g. SOS Beacon button tap)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -143,11 +144,51 @@ export default function App() {
       }
     }
 
+    // 1. Cold start native widget SOS trigger check
+    torchController.checkLaunchIntent().then((res) => {
+      if (res && res.triggerSos) {
+        setIsLightOn(true);
+        setMode('sos');
+        setActiveTab('sos');
+        setBrightness(100);
+        setTorchStrength(100);
+        setLightSource('torch');
+        torchController.setTorch(true, false, 100);
+      }
+    });
+
+    // 2. Warm start native widget listener (when app is already running)
+    let removeListener: (() => void) | null = null;
+    try {
+      const listenerPromise = (NativeTorch as any).addListener('onTriggerSos', () => {
+        setIsLightOn(true);
+        setMode('sos');
+        setActiveTab('sos');
+        setBrightness(100);
+        setTorchStrength(100);
+        setLightSource('torch');
+        torchController.setTorch(true, false, 100);
+      });
+      if (listenerPromise && typeof listenerPromise.then === 'function') {
+        listenerPromise.then((handle: any) => {
+          if (handle && typeof handle.remove === 'function') {
+            removeListener = () => handle.remove();
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('Native listener setup error:', err);
+    }
+
     try {
       if (typeof window !== 'undefined' && 'screen' in window && screen.orientation && 'lock' in screen.orientation) {
         (screen.orientation as any).lock('portrait').catch(() => {});
       }
     } catch {}
+
+    return () => {
+      if (removeListener) removeListener();
+    };
   }, []);
 
   // Synchronize Hardware Torch LED
@@ -350,17 +391,57 @@ export default function App() {
     }
   };
 
-  // Copy GPS Coordinates
-  const copyGpsCoords = () => {
-    if (gps.latitude === null || gps.longitude === null) return;
-    const latDir = gps.latitude >= 0 ? 'N' : 'S';
-    const lngDir = gps.longitude >= 0 ? 'E' : 'W';
-    const latFormatted = `${Math.abs(gps.latitude).toFixed(5)}°${latDir}`;
-    const lngFormatted = `${Math.abs(gps.longitude).toFixed(5)}°${lngDir}`;
-    const text = `LIGHTFLASH GPS: ${latFormatted}, ${lngFormatted} (Alt: ${gps.altitude || 0}m, Acc: ±${gps.accuracy}m)`;
-    navigator.clipboard.writeText(text);
+  // Share / Copy GPS Coordinates & Maps Link
+  const handleShareLocation = async () => {
+    playTacticalClick(true);
+    triggerHaptic(HAPTIC_PATTERNS.BUTTON_CLICK);
+
+    let lat = gps.latitude;
+    let lng = gps.longitude;
+    let alt = gps.altitude;
+    let acc = gps.accuracy;
+
+    // Fallback to native Android LocationManager if Web geolocation hasn't resolved
+    if (lat === null || lng === null) {
+      try {
+        const nativeLoc = await torchController.getNativeLocation();
+        if (nativeLoc && nativeLoc.latitude !== null && nativeLoc.longitude !== null) {
+          lat = nativeLoc.latitude;
+          lng = nativeLoc.longitude;
+          alt = nativeLoc.altitude;
+          acc = nativeLoc.accuracy;
+        }
+      } catch {}
+    }
+
+    if (lat === null || lng === null) {
+      setSaveNotification('Acquiring GPS constellation fix... Please retry in a few moments.');
+      setTimeout(() => setSaveNotification(null), 3000);
+      refreshLocation();
+      return;
+    }
+
+    const latDir = lat >= 0 ? 'N' : 'S';
+    const lngDir = lng >= 0 ? 'E' : 'W';
+    const latFormatted = `${Math.abs(lat).toFixed(5)}°${latDir}`;
+    const lngFormatted = `${Math.abs(lng).toFixed(5)}°${lngDir}`;
+    const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+    const text = `LIGHTFLASH Tactical Beacon Location:\nCoords: ${latFormatted}, ${lngFormatted}\nMaps: ${mapsUrl}${alt ? `\nAlt: ${Math.round(alt)}m` : ''}${acc ? ` (Acc: ±${Math.round(acc)}m)` : ''}`;
+
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      }
+    } catch {}
+
     setCopiedCoords(true);
-    setTimeout(() => setCopiedCoords(false), 2000);
+    setTimeout(() => setCopiedCoords(false), 2500);
+
+    const shared = await torchController.shareLocation(text);
+    if (!shared) {
+      setSaveNotification('Location & Google Maps link copied to clipboard!');
+      setTimeout(() => setSaveNotification(null), 3000);
+    }
   };
 
   // Save current preferences to persistent storage
@@ -527,6 +608,14 @@ export default function App() {
         </div>
       </header>
 
+      {/* Toast Notification for Saved Preferences & Location */}
+      {saveNotification && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-slate-900/95 border border-amber-500/60 text-amber-300 text-xs font-mono shadow-2xl backdrop-blur-md flex items-center gap-2 pointer-events-none transition-all">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-semibold">{saveNotification}</span>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <main className="relative z-10 max-w-xl mx-auto px-4 py-4 space-y-4">
         {/* PWA Install Banner */}
@@ -553,14 +642,15 @@ export default function App() {
               <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
-              onClick={copyGpsCoords}
-              className="text-slate-400 hover:text-white"
-              title="Copy GPS Coordinates"
+              onClick={handleShareLocation}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 transition-all"
+              title="Share Location & Coordinates"
+              aria-label="Share Location"
             >
               {copiedCoords ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
               ) : (
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-3.5 h-3.5 text-amber-400" />
               )}
             </button>
           </div>

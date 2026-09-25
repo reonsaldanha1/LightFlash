@@ -28,7 +28,7 @@ export const QuickWidget: React.FC<QuickWidgetProps> = ({
   isSosActive,
   batteryPercent,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [widgetToast, setWidgetToast] = useState<string | null>(null);
 
   const handleAddWidget = async () => {

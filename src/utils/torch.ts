@@ -48,6 +48,14 @@ export interface NativeTorchPlugin {
     supportsStrength?: boolean;
   }>;
   requestPinWidget(): Promise<{ supported: boolean; success: boolean }>;
+  checkLaunchIntent(): Promise<{ triggerSos: boolean }>;
+  shareLocation(options: { text: string }): Promise<{ success: boolean }>;
+  getNativeLocation(): Promise<{
+    latitude: number | null;
+    longitude: number | null;
+    altitude: number | null;
+    accuracy: number | null;
+  }>;
 }
 
 export const NativeTorch = registerPlugin<NativeTorchPlugin>('NativeTorch');
@@ -268,6 +276,56 @@ class TorchController {
 
   public getMaxTorchStrength(): number {
     return this.maxTorchStrength;
+  }
+
+  public async checkLaunchIntent(): Promise<{ triggerSos: boolean }> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        return await NativeTorch.checkLaunchIntent();
+      } catch (err) {
+        console.warn('NativeTorch checkLaunchIntent error:', err);
+      }
+    }
+    return { triggerSos: false };
+  }
+
+  public async shareLocation(text: string): Promise<boolean> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const res = await NativeTorch.shareLocation({ text });
+        return !!res.success;
+      } catch (err) {
+        console.warn('NativeTorch shareLocation error:', err);
+      }
+    }
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Lightflash Location',
+          text,
+        });
+        return true;
+      } catch (err) {
+        console.warn('Web navigator.share error:', err);
+      }
+    }
+    return false;
+  }
+
+  public async getNativeLocation(): Promise<{
+    latitude: number | null;
+    longitude: number | null;
+    altitude: number | null;
+    accuracy: number | null;
+  }> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        return await NativeTorch.getNativeLocation();
+      } catch (err) {
+        console.warn('NativeTorch getNativeLocation error:', err);
+      }
+    }
+    return { latitude: null, longitude: null, altitude: null, accuracy: null };
   }
 
   /**

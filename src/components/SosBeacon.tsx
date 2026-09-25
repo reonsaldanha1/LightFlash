@@ -4,8 +4,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Volume2, VolumeX, Copy, Check, Radio } from 'lucide-react';
+import { AlertTriangle, Volume2, VolumeX, Copy, Check, Radio, Share2 } from 'lucide-react';
 import { GPSCoordinates } from '../types/flashlight';
+import { torchController } from '../utils/torch';
 
 interface SosBeaconProps {
   isActive: boolean;
@@ -51,24 +52,48 @@ export const SosBeacon: React.FC<SosBeaconProps> = ({
     return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const copyDistressDispatch = () => {
+  const copyDistressDispatch = async () => {
+    let lat = gps.latitude;
+    let lng = gps.longitude;
+    let alt = gps.altitude;
+    let acc = gps.accuracy;
+
+    if (lat === null || lng === null) {
+      try {
+        const nativeLoc = await torchController.getNativeLocation();
+        if (nativeLoc && nativeLoc.latitude !== null && nativeLoc.longitude !== null) {
+          lat = nativeLoc.latitude;
+          lng = nativeLoc.longitude;
+          alt = nativeLoc.altitude;
+          acc = nativeLoc.accuracy;
+        }
+      } catch {}
+    }
+
     const timeStr = new Date().toISOString();
     const latStr =
-      gps.latitude !== null
-        ? `${Math.abs(gps.latitude).toFixed(5)}°${gps.latitude >= 0 ? 'N' : 'S'}`
+      lat !== null
+        ? `${Math.abs(lat).toFixed(5)}°${lat >= 0 ? 'N' : 'S'}`
         : 'UNKNOWN';
     const lngStr =
-      gps.longitude !== null
-        ? `${Math.abs(gps.longitude).toFixed(5)}°${gps.longitude >= 0 ? 'E' : 'W'}`
+      lng !== null
+        ? `${Math.abs(lng).toFixed(5)}°${lng >= 0 ? 'E' : 'W'}`
         : 'UNKNOWN';
-    const altStr = gps.altitude !== null ? `${gps.altitude}m` : 'N/A';
+    const altStr = alt !== null ? `${Math.round(alt)}m` : 'N/A';
+    const mapsUrl = lat !== null && lng !== null ? `\nMAPS: https://maps.google.com/?q=${lat},${lng}` : '';
 
-    const dispatchText = `MAYDAY DISTRESS DISPATCH (LIGHTFLASH BEACON ACTIVE)\nTIME: ${timeStr}\nCOORDINATES: LAT ${latStr}, LNG ${lngStr} (±${gps.accuracy || 15}m)\nALTITUDE: ${altStr}\nSTATUS: Emergency SOS Beacon Loop Engaged.\nAUDIO/OPTICAL: 850Hz Continuous ITU Morse SOS (... --- ...).`;
+    const dispatchText = `MAYDAY DISTRESS DISPATCH (LIGHTFLASH BEACON ACTIVE)\nTIME: ${timeStr}\nCOORDINATES: LAT ${latStr}, LNG ${lngStr} (±${acc || 15}m)\nALTITUDE: ${altStr}${mapsUrl}\nSTATUS: Emergency SOS Beacon Loop Engaged.\nAUDIO/OPTICAL: 850Hz Continuous ITU Morse SOS (... --- ...).`;
 
-    navigator.clipboard.writeText(dispatchText).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(dispatchText);
+      }
+    } catch {}
+
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+
+    await torchController.shareLocation(dispatchText);
   };
 
   // Morse symbols representation:
@@ -201,17 +226,18 @@ export const SosBeacon: React.FC<SosBeaconProps> = ({
 
         <button
           onClick={copyDistressDispatch}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono border border-slate-700 active:scale-95 transition-all shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-900/40 hover:bg-rose-800/60 text-rose-200 text-xs font-mono border border-rose-700/80 active:scale-95 transition-all shrink-0"
+          title="Share distress coordinates & dispatch payload"
         >
           {copied ? (
             <>
               <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Copied</span>
+              <span>Shared</span>
             </>
           ) : (
             <>
-              <Copy className="w-3.5 h-3.5" />
-              <span>Copy Dispatch</span>
+              <Share2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>Share Dispatch</span>
             </>
           )}
         </button>

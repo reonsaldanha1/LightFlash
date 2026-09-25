@@ -65,13 +65,15 @@ export const NightModeToggle: React.FC<NightModeToggleProps> = ({
 
         {/* Tactical Toggle Switch UI */}
         <div
-          className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-200 border ${
+          className={`w-11 h-6 rounded-full transition-colors duration-200 relative shrink-0 border ${
             isNightVision ? 'bg-red-600 border-red-400' : 'bg-slate-800 border-slate-700'
           }`}
         >
           <div
-            className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
-              isNightVision ? 'translate-x-6 bg-red-100' : 'translate-x-0'
+            className={`absolute top-[2px] w-[18px] h-[18px] rounded-full shadow-md transition-all duration-200 ${
+              isNightVision
+                ? 'left-[22px] bg-white'
+                : 'left-[2px] bg-slate-300'
             }`}
           />
         </div>

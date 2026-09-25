@@ -32,9 +32,12 @@ public class LightflashAppWidget extends AppWidgetProvider {
             TorchHelper.toggle(context);
             updateAllWidgets(context);
         } else if (ACTION_OPEN_SOS.equals(action)) {
+            MainActivity.pendingSosLaunch = true;
+            TorchPlugin.triggerSosEvent();
             Intent appIntent = new Intent(context, MainActivity.class);
+            appIntent.setAction(Intent.ACTION_VIEW);
             appIntent.putExtra("mode", "sos");
-            appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             context.startActivity(appIntent);
         }
     }
@@ -87,7 +90,7 @@ public class LightflashAppWidget extends AppWidgetProvider {
             Intent sosIntent = new Intent(context, MainActivity.class);
             sosIntent.setAction(Intent.ACTION_VIEW);
             sosIntent.putExtra("mode", "sos");
-            sosIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            sosIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             PendingIntent sosPendingIntent = PendingIntent.getActivity(
                 context,
                 200,
