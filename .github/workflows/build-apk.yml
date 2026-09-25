@@ -1,0 +1,63 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Project Dependencies
+        run: npm install
+
+      - name: Install Capacitor CLI & Android Native Package
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Build Web Application
+        run: npm run build
+
+      - name: Sync Capacitor Android Project
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Build Android APK with Gradle
+        working-directory: ./android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare APK Output
+        run: |
+          mkdir -p dist-apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical-v1.0.apk
+
+      - name: Upload APK to GitHub Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lightflash-Tactical-APK
+          path: dist-apk/Lightflash-Tactical-v1.0.apk
+          retention-days: 60
