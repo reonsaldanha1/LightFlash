@@ -300,9 +300,8 @@ export default function App() {
     setBrightness(100);
     setActiveColor(COLOR_FILTERS[1]); // Daylight White 6500K
     setIsNightVision(false);
-    if (lightSource !== 'screen') {
-      applyHardwareTorch(true);
-    }
+    setLightSource('torch'); // Ensure rear hardware torch is activated
+    applyHardwareTorch(true, false);
   };
 
   // Quick Action: Instant SOS Distress Loop
@@ -310,13 +309,16 @@ export default function App() {
     if (isLightOn && mode === 'sos') {
       setMode('steady');
       setIsLightOn(false);
-      applyHardwareTorch(false);
+      applyHardwareTorch(false, false);
     } else {
       setIsLightOn(true);
       setMode('sos');
       setActiveTab('sos');
       setBrightness(100);
       setActiveColor(COLOR_FILTERS[0]); // Red for emergency
+      if (lightSource === 'screen') {
+        setLightSource('dual');
+      }
     }
   };
 
@@ -430,7 +432,12 @@ export default function App() {
       )}
 
       {/* App Header / Navigation */}
-      <header className="relative z-10 sticky top-0 backdrop-blur-md bg-black/70 border-b border-white/10 px-4 py-3">
+      <header
+        className="relative z-10 sticky top-0 backdrop-blur-md bg-black/95 border-b border-white/10 px-4 pb-3"
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px) + 8px, 42px)',
+        }}
+      >
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div
@@ -553,6 +560,7 @@ export default function App() {
                 setLightSource('dual');
                 playTacticalClick(true);
                 triggerHaptic(HAPTIC_PATTERNS.BUTTON_CLICK);
+                if (isLightOn) applyHardwareTorch(true, false);
               }}
               className={`flex-1 py-1 px-2 rounded-full font-bold transition-all ${
                 lightSource === 'dual'
@@ -570,6 +578,7 @@ export default function App() {
                 setLightSource('torch');
                 playTacticalClick(true);
                 triggerHaptic(HAPTIC_PATTERNS.BUTTON_CLICK);
+                if (isLightOn) applyHardwareTorch(true, false);
               }}
               className={`flex-1 py-1 px-2 rounded-full font-bold transition-all ${
                 lightSource === 'torch'
@@ -587,6 +596,7 @@ export default function App() {
                 setLightSource('screen');
                 playTacticalClick(true);
                 triggerHaptic(HAPTIC_PATTERNS.BUTTON_CLICK);
+                if (isLightOn) applyHardwareTorch(false, false);
               }}
               className={`flex-1 py-1 px-2 rounded-full font-bold transition-all ${
                 lightSource === 'screen'

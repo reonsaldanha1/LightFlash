@@ -3,6 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { registerPlugin, Capacitor } from '@capacitor/core';
+
+export interface NativeTorchPlugin {
+  isAvailable(): Promise<{ available: boolean }>;
+  setTorch(options: { enabled: boolean }): Promise<{ success: boolean; isOn: boolean }>;
+  toggleTorch(): Promise<{ success: boolean; isOn: boolean }>;
+  getTorchState(): Promise<{ isOn: boolean }>;
+  requestPinWidget(): Promise<{ supported: boolean; success: boolean }>;
+}
+
+export const NativeTorch = registerPlugin<NativeTorchPlugin>('NativeTorch');
+
 export interface TorchStatus {
   isAvailable: boolean;
   isOn: boolean;
@@ -15,12 +27,22 @@ class TorchController {
   private track: MediaStreamTrack | null = null;
   private isTorchSupported: boolean = false;
   private isLit: boolean = false;
-  private initPromise: Promise<boolean> | null = null;
 
   /**
    * Test whether hardware torch is available
    */
   public async checkSupport(): Promise<boolean> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const res = await NativeTorch.isAvailable();
+        this.isTorchSupported = res.available;
+        return res.available;
+      } catch {
+        this.isTorchSupported = true;
+        return true;
+      }
+    }
+
     if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       return false;
     }
@@ -35,7 +57,7 @@ class TorchController {
   }
 
   /**
-   * Acquire rear camera track with torch capability
+   * Acquire rear camera track with torch capability (Web fallback)
    */
   private async acquireTrack(): Promise<MediaStreamTrack | null> {
     if (this.track && this.track.readyState === 'live') {
@@ -43,7 +65,6 @@ class TorchController {
     }
 
     try {
-      // First try rear environment camera
       const constraints: MediaStreamConstraints = {
         audio: false,
         video: {
@@ -55,7 +76,6 @@ class TorchController {
       try {
         this.stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch {
-        // Fallback without advanced constraint on initial request
         this.stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: { facingMode: { ideal: 'environment' } },
@@ -68,8 +88,6 @@ class TorchController {
       const track = tracks[0];
       this.track = track;
 
-      // Inspect capabilities
-      // MediaStreamTrack.getCapabilities() is supported in modern browsers
       const capabilities = (track as unknown as { getCapabilities?: () => { torch?: boolean } }).getCapabilities?.();
       this.isTorchSupported = !!capabilities?.torch;
 
@@ -83,9 +101,21 @@ class TorchController {
   /**
    * Set physical torch LED state
    * @param on whether to turn LED on or off
-   * @param keepTrackAlive if true, avoids stopping the camera stream (crucial for rapid strobe/SOS)
+   * @param keepTrackAlive if true, avoids stopping the camera stream (crucial for rapid strobe/SOS in browser)
    */
   public async setTorch(on: boolean, keepTrackAlive: boolean = false): Promise<boolean> {
+    // 1. Primary: Native Android hardware camera torch via CameraManager
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const res = await NativeTorch.setTorch({ enabled: on });
+        this.isLit = res.isOn;
+        return res.success;
+      } catch (err) {
+        console.warn('NativeTorch plugin error, falling back to web API:', err);
+      }
+    }
+
+    // 2. Fallback: Browser WebRTC MediaStreamTrack
     try {
       if (!on) {
         if (this.track && this.track.readyState === 'live') {
@@ -137,6 +167,9 @@ class TorchController {
    * Stop video stream to release camera hardware
    */
   public stopStream(): void {
+    if (Capacitor.isNativePlatform()) {
+      NativeTorch.setTorch({ enabled: false }).catch(() => {});
+    }
     if (this.track) {
       try {
         this.track.stop();

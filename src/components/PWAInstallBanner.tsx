@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { Download, X, Smartphone, Share, PlusSquare } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 export const PWAInstallBanner: React.FC = () => {
@@ -12,7 +13,8 @@ export const PWAInstallBanner: React.FC = () => {
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  if (isInstalled || dismissed) {
+  // Never show PWA web install banner when already installed as native Android APK
+  if (isInstalled || dismissed || Capacitor.isNativePlatform()) {
     return null;
   }
 
