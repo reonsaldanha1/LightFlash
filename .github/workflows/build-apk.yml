@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: 'npm'
 
       - name: Setup Java JDK 17
@@ -28,19 +28,26 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Project Dependencies
+      - name: Setup Android SDK Environment
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "sdk.dir=/usr/local/lib/android/sdk" > android/local.properties
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Install Node Dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build Production Web App
+      - name: Build Web Application
         run: npm run build
 
-      - name: Sync Capacitor Android Project
+      - name: Sync Web Assets to Android
         run: npx cap sync android
 
-      - name: Build Android APK with Gradle
+      - name: Build APK with Gradle
         working-directory: ./android
         run: |
-          chmod +x gradlew
+          chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Output
@@ -48,7 +55,7 @@ jobs:
           mkdir -p dist-apk
           cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical-v1.0.apk
 
-      - name: Upload APK to GitHub Artifacts
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Lightflash-Tactical-APK
