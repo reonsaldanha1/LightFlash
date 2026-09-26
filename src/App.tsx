@@ -571,50 +571,52 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Compass, Morse Chart & Preferences Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Quick Compass, Morse Chart & Preferences Buttons (2 on row 1, 2 on row 2) */}
+          <div className="grid grid-cols-2 gap-1.5 shrink-0">
+            {/* Row 1: First 2 buttons */}
             <button
               onClick={() => {
                 playTacticalClick(true);
                 setShowPrefsModal(true);
               }}
-              className="p-2 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white active:scale-95 transition-all text-xs flex items-center gap-1.5"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5"
               title="Startup Preferences & Defaults"
             >
-              <SlidersHorizontal className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline font-mono">Prefs</span>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono text-[11px]">Prefs</span>
             </button>
 
             <button
               onClick={() => setShowMorseRef(true)}
-              className="p-2 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white active:scale-95 transition-all text-xs flex items-center gap-1.5"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5"
               title="International Morse Code Chart"
             >
-              <Radio className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline font-mono">Morse</span>
+              <Radio className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono text-[11px]">Morse</span>
             </button>
 
+            {/* Row 2: Last 2 buttons */}
             <button
               onClick={() => {
                 playTacticalClick(true);
                 setShowSupportModal(true);
               }}
-              className="p-2 rounded-xl bg-slate-900/90 border border-amber-500/40 text-amber-300 hover:text-amber-200 hover:border-amber-400 active:scale-95 transition-all text-xs flex items-center gap-1.5"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-amber-500/40 text-amber-300 hover:text-amber-200 hover:border-amber-400 active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5"
               title="Support Lightflash (Buy Me a Coffee / UPI)"
             >
-              <Coffee className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline font-mono">Support</span>
+              <Coffee className="w-3.5 h-3.5 text-amber-400" />
+              <span className="font-mono text-[11px]">Support</span>
             </button>
 
             {/* Compass Heading Pill */}
             <div
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold ${
+              className={`flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl border text-[11px] font-mono font-bold ${
                 isNightVision
                   ? 'bg-red-950/80 border-red-800 text-red-300'
                   : 'bg-slate-900/80 border-slate-700 text-amber-400'
               }`}
             >
-              <Compass className="w-4 h-4" />
+              <Compass className="w-3.5 h-3.5" />
               <span>
                 {heading !== null ? `${heading}° ${cardinal}` : 'COMPASS'}
               </span>
