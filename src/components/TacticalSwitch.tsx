@@ -80,8 +80,8 @@ export const TacticalSwitch: React.FC<TacticalSwitchProps> = ({
           isOn
             ? {
                 boxShadow: isNightVision
-                  ? '0 0 60px rgba(239, 68, 68, 0.45), 0 0 100px rgba(239, 68, 68, 0.2)'
-                  : `0 0 60px ${activeColorHex}55, 0 0 100px ${activeColorHex}25`,
+                  ? '0 0 65px rgba(239, 68, 68, 0.6), 0 0 120px rgba(239, 68, 68, 0.25)'
+                  : `0 0 65px ${activeColorHex}88, 0 0 120px ${activeColorHex}35`,
               }
             : undefined
         }
@@ -95,23 +95,53 @@ export const TacticalSwitch: React.FC<TacticalSwitchProps> = ({
           onClick={handleClick}
           type="button"
           aria-label={isOn ? 'Turn flashlight off' : 'Turn flashlight on'}
-          className={`relative w-44 h-44 sm:w-52 sm:h-52 rounded-full flex flex-col items-center justify-center transition-all duration-150 active:scale-95 cursor-pointer outline-none focus:outline-none ${
+          className={`relative w-44 h-44 sm:w-52 sm:h-52 rounded-full flex flex-col items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer outline-none focus:outline-none border-4 ${
+            isOn
+              ? 'shadow-[inset_0_2px_12px_rgba(255,255,255,0.4)]'
+              : 'bg-gradient-to-b from-slate-800 via-slate-900 to-black text-slate-400 border-slate-700 shadow-[inset_0_4px_12px_rgba(0,0,0,0.9)] hover:border-slate-600'
+          }`}
+          style={
             isOn
               ? isNightVision
-                ? 'bg-gradient-to-b from-red-600 to-red-950 text-white border-4 border-red-500 shadow-[inset_0_2px_8px_rgba(255,255,255,0.4)]'
-                : 'bg-gradient-to-b from-amber-400 to-amber-600 text-slate-950 border-4 border-amber-300 shadow-[inset_0_2px_8px_rgba(255,255,255,0.5)]'
-              : 'bg-gradient-to-b from-slate-800 via-slate-900 to-black text-slate-400 border-4 border-slate-700 shadow-[inset_0_4px_12px_rgba(0,0,0,0.9)] hover:border-slate-600'
-          }`}
+                ? {
+                    background: 'linear-gradient(180deg, #dc2626 0%, #7f1d1d 55%, #450a0a 100%)',
+                    borderColor: '#ef4444',
+                    color: '#ffffff',
+                    boxShadow: '0 0 35px rgba(239, 68, 68, 0.5), inset 0 2px 10px rgba(255, 255, 255, 0.4)',
+                  }
+                : {
+                    background: `linear-gradient(180deg, ${activeColorHex} 0%, ${activeColorHex}cc 50%, #090d16 100%)`,
+                    borderColor: activeColorHex,
+                    color: ['#ffffff', '#ffb74d'].includes(activeColorHex.toLowerCase()) ? '#090d16' : '#ffffff',
+                    boxShadow: `0 0 35px ${activeColorHex}77, inset 0 2px 10px rgba(255, 255, 255, 0.4)`,
+                  }
+              : undefined
+          }
         >
           {/* Inner Glowing Core */}
           <div
             className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
               isOn
-                ? isNightVision
-                  ? 'bg-red-500/30 ring-8 ring-red-500/40 text-red-100'
-                  : 'bg-white/40 ring-8 ring-white/30 text-slate-950'
+                ? 'ring-8'
                 : 'bg-slate-900/80 ring-2 ring-slate-800 text-slate-500'
             }`}
+            style={
+              isOn
+                ? isNightVision
+                  ? {
+                      backgroundColor: 'rgba(239, 68, 68, 0.35)',
+                      borderColor: '#ef4444',
+                      color: '#fee2e2',
+                      boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)',
+                    }
+                  : {
+                      backgroundColor: `${activeColorHex}40`,
+                      borderColor: activeColorHex,
+                      color: ['#ffffff', '#ffb74d'].includes(activeColorHex.toLowerCase()) ? '#090d16' : '#ffffff',
+                      boxShadow: `0 0 20px ${activeColorHex}66`,
+                    }
+                : undefined
+            }
           >
             <Power
               className={`w-10 h-10 sm:w-12 sm:h-12 transition-transform duration-300 ${
@@ -127,7 +157,9 @@ export const TacticalSwitch: React.FC<TacticalSwitchProps> = ({
               isOn
                 ? isNightVision
                   ? 'text-white drop-shadow'
-                  : 'text-slate-950'
+                  : ['#ffffff', '#ffb74d'].includes(activeColorHex.toLowerCase())
+                  ? 'text-slate-950 font-black'
+                  : 'text-white drop-shadow'
                 : 'text-slate-500'
             }`}
           >
@@ -140,7 +172,7 @@ export const TacticalSwitch: React.FC<TacticalSwitchProps> = ({
               className={`text-[10px] font-mono tracking-tight px-2 py-0.5 mt-1 rounded-full ${
                 isNightVision
                   ? 'bg-red-950/80 text-red-200 border border-red-700/50'
-                  : 'bg-black/30 text-slate-900 font-semibold border border-black/10'
+                  : 'bg-black/40 text-white font-semibold border border-white/20'
               }`}
             >
               ~{burnRateMa} mA
@@ -156,9 +188,17 @@ export const TacticalSwitch: React.FC<TacticalSwitchProps> = ({
             isOn
               ? isNightVision
                 ? 'bg-red-950/60 border-red-800 text-red-300'
-                : 'bg-slate-900 border-amber-500/40 text-amber-300'
+                : 'bg-slate-900 border-slate-700 text-slate-200'
               : 'bg-slate-900/60 border-slate-800 text-slate-400'
           }`}
+          style={
+            isOn && !isNightVision
+              ? {
+                  borderColor: `${activeColorHex}66`,
+                  color: activeColorHex === '#ffffff' ? '#ffffff' : activeColorHex,
+                }
+              : undefined
+          }
         >
           {getModeIcon()}
           <span className="font-semibold tracking-wide">{getModeLabel()}</span>

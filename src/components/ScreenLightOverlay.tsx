@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Sun, Maximize2, Minimize2, Eye, Sparkles, Zap, Smartphone, Sliders } from 'lucide-react';
+import { Sun, Maximize2, Minimize2, Eye, Sparkles, Zap, Smartphone, Sliders, Check } from 'lucide-react';
 import { COLOR_FILTERS, ColorFilter } from '../types/flashlight';
 
 export type IntensityTarget = 'both' | 'torch' | 'screen';
@@ -141,19 +141,20 @@ export const ScreenLightOverlay: React.FC<ScreenLightOverlayProps> = ({
       {/* Screen Preview & Luminous Swatch */}
       <div
         onClick={toggleFullscreen}
-        className="relative w-full h-16 rounded-xl border border-slate-700/80 overflow-hidden cursor-pointer group flex items-center justify-center transition-all"
+        className="relative w-full h-16 rounded-xl border overflow-hidden cursor-pointer group flex items-center justify-center transition-all"
         style={{
           backgroundColor: activeColor.hex,
-          opacity: isOn ? Math.max(0.12, brightness / 100) : 0.08,
-          boxShadow: isOn ? `0 0 25px ${activeColor.hex}44` : 'none',
+          opacity: isOn ? Math.max(0.45, brightness / 100) : 0.25,
+          borderColor: activeColor.hex,
+          boxShadow: isOn ? `0 0 30px ${activeColor.hex}66` : `0 0 15px ${activeColor.hex}33`,
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20 pointer-events-none" />
-        <span className="relative z-10 text-xs font-mono font-bold tracking-widest px-3 py-1 rounded-full bg-black/60 text-white backdrop-blur border border-white/20 group-hover:scale-105 transition-transform flex items-center gap-1.5">
+        <span className="relative z-10 text-xs font-mono font-bold tracking-widest px-3 py-1 rounded-full bg-black/60 text-white backdrop-blur border border-white/20 group-hover:scale-105 transition-transform flex items-center gap-1.5 shadow-md">
           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
           {isOn
             ? `${activeColor.name} • Torch: ${torchStrength}% • Screen: ${brightness}%`
-            : 'LIGHT OFF (TAP TO PREVIEW)'}
+            : `${activeColor.name.toUpperCase()} (TAP FOR FULLSCREEN LANTERN)`}
         </span>
       </div>
 
@@ -300,30 +301,41 @@ export const ScreenLightOverlay: React.FC<ScreenLightOverlayProps> = ({
             return (
               <button
                 key={filter.id}
-                onClick={() => {
-                  onSelectColor(filter);
-                  if (filter.isRedNightVision && !isNightVision) {
-                    onToggleNightVision();
-                  }
-                }}
+                type="button"
+                onClick={() => onSelectColor(filter)}
                 title={`${filter.name} - ${filter.wavelengthDescription}`}
-                className={`relative flex flex-col items-center p-1.5 rounded-xl border transition-all ${
+                className={`relative flex flex-col items-center p-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer ${
                   isSelected
-                    ? 'border-white ring-2 ring-white/30 scale-105'
+                    ? 'ring-2 ring-white/70 scale-105 shadow-lg'
                     : 'border-slate-800 hover:border-slate-600'
                 }`}
-                style={{ backgroundColor: `${filter.hex}15` }}
+                style={{
+                  backgroundColor: isSelected ? `${filter.hex}35` : `${filter.hex}15`,
+                  borderColor: isSelected ? filter.hex : 'rgba(51, 65, 85, 0.6)',
+                }}
               >
                 <div
-                  className="w-7 h-7 rounded-full shadow-inner border border-white/30 flex items-center justify-center"
+                  className="w-7 h-7 rounded-full shadow-inner border border-white/40 flex items-center justify-center transition-transform"
                   style={{
                     backgroundColor: filter.hex,
-                    boxShadow: isSelected ? `0 0 12px ${filter.hex}` : 'none',
+                    boxShadow: isSelected ? `0 0 16px ${filter.hex}` : 'none',
+                    transform: isSelected ? 'scale(1.1)' : 'scale(1)',
                   }}
                 >
                   {filter.isRedNightVision && <Eye className="w-3.5 h-3.5 text-white drop-shadow" />}
+                  {isSelected && !filter.isRedNightVision && (
+                    <Check
+                      className={`w-3.5 h-3.5 drop-shadow ${
+                        filter.hex === '#ffffff' ? 'text-black' : 'text-white'
+                      }`}
+                    />
+                  )}
                 </div>
-                <span className="text-[9px] font-mono mt-1 text-slate-300 truncate w-full text-center">
+                <span
+                  className={`text-[9px] font-mono mt-1 truncate w-full text-center ${
+                    isSelected ? 'font-bold text-white' : 'text-slate-300'
+                  }`}
+                >
                   {filter.name.split(' ')[0]}
                 </span>
               </button>

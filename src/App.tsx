@@ -389,9 +389,41 @@ export default function App() {
     setIsNightVision(nextVal);
     if (nextVal) {
       setActiveColor(COLOR_FILTERS[0]); // Red
+      setSaveNotification('Night Vision Red Light Filter ON (630nm)');
     } else {
       setActiveColor(COLOR_FILTERS[1]); // White
+      setSaveNotification('Night Vision Filter OFF (Daylight White)');
     }
+    setTimeout(() => setSaveNotification(null), 2500);
+  };
+
+  // Beam Spectrum / Color Filter Selection Handler
+  const handleSelectColor = (filter: ColorFilter) => {
+    setActiveColor(filter);
+    playTacticalClick(true);
+    triggerHaptic(HAPTIC_PATTERNS.BUTTON_CLICK);
+
+    if (filter.isRedNightVision) {
+      if (!isNightVision) {
+        setIsNightVision(true);
+      }
+      setSaveNotification(`Beam Spectrum: ${filter.name} • Night Vision Active`);
+    } else {
+      // If user had Red Night Vision active, release it so the newly chosen spectrum shines!
+      if (isNightVision) {
+        setIsNightVision(false);
+      }
+      // If currently on Rear Flash only, switch to Dual Beam so screen actually emits the selected color!
+      if (lightSource === 'torch') {
+        setLightSource('dual');
+        setSaveNotification(`Beam Spectrum: ${filter.name} • Dual Beam Activated`);
+      } else {
+        setSaveNotification(`Beam Spectrum: ${filter.name} (${filter.wavelengthDescription.split('•')[0].trim()})`);
+      }
+    }
+    setTimeout(() => {
+      setSaveNotification(null);
+    }, 3200);
   };
 
   // Share / Copy GPS Coordinates & Maps Link
@@ -541,18 +573,19 @@ export default function App() {
         isNightVision ? 'night-filter-red bg-black text-red-100' : 'bg-slate-950 text-slate-100'
       }`}
     >
-      {/* Dynamic Screen Flashlight Overlay when screen source is active */}
+      {/* Dynamic Screen Flashlight Spectrum Overlay (Casts vibrant colored illumination when Screen or Dual is active) */}
       {isLightOn && (lightSource === 'screen' || lightSource === 'dual') && (
         <div
-          className="fixed inset-0 pointer-events-none transition-opacity duration-75 z-0"
+          className="fixed inset-0 pointer-events-none transition-opacity duration-150 z-20"
           style={{
             backgroundColor: activeColor.hex,
             opacity:
               mode === 'strobe' || mode === 'sos'
                 ? strobeFlashState
-                  ? (brightness / 100) * 0.95
-                  : 0.04
-                : (brightness / 100) * 0.85,
+                  ? Math.min(0.65, (brightness / 100) * 0.7)
+                  : 0.02
+                : Math.min(0.55, (brightness / 100) * 0.6),
+            mixBlendMode: 'screen',
           }}
         />
       )}
@@ -719,7 +752,16 @@ export default function App() {
 
         {/* PRIMARY TACTICAL SWITCH & POWER CORE */}
         <div className="bg-slate-950/80 border border-slate-800/90 rounded-3xl p-5 shadow-2xl relative overflow-hidden">
-          <div className="tactical-grid absolute inset-0 opacity-20 pointer-events-none" />
+          <div
+            className="tactical-grid absolute inset-0 opacity-25 pointer-events-none transition-all duration-300"
+            style={
+              isLightOn
+                ? {
+                    background: `radial-gradient(circle at 50% 50%, ${activeColor.hex}30 0%, transparent 70%)`,
+                  }
+                : undefined
+            }
+          />
 
           {/* Light Source Switcher (Dual, Rear LED, Screen) */}
           <div className="flex items-center justify-center gap-1 p-1 bg-slate-900 rounded-full border border-slate-800 text-[11px] font-mono mb-2 max-w-xs mx-auto">
@@ -737,6 +779,16 @@ export default function App() {
                     : 'bg-amber-500 text-slate-950 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
+              style={
+                lightSource === 'dual' && !isNightVision && activeColor.id !== 'white'
+                  ? {
+                      backgroundColor: activeColor.hex,
+                      color: ['#ffffff', '#ffb74d'].includes(activeColor.hex.toLowerCase())
+                        ? '#090d16'
+                        : '#ffffff',
+                    }
+                  : undefined
+              }
             >
               DUAL BEAM
             </button>
@@ -773,6 +825,16 @@ export default function App() {
                     : 'bg-amber-500 text-slate-950 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
+              style={
+                lightSource === 'screen' && !isNightVision && activeColor.id !== 'white'
+                  ? {
+                      backgroundColor: activeColor.hex,
+                      color: ['#ffffff', '#ffb74d'].includes(activeColor.hex.toLowerCase())
+                        ? '#090d16'
+                        : '#ffffff',
+                    }
+                  : undefined
+              }
             >
               SCREEN PANEL
             </button>
@@ -933,7 +995,7 @@ export default function App() {
             intensityTarget={intensityTarget}
             onIntensityTargetChange={setIntensityTarget}
             activeColor={activeColor}
-            onSelectColor={setActiveColor}
+            onSelectColor={handleSelectColor}
             isNightVision={isNightVision}
             onToggleNightVision={handleInstantNightVision}
             isStrobeFlash={strobeFlashState}
