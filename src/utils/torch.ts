@@ -56,6 +56,7 @@ export interface NativeTorchPlugin {
     altitude: number | null;
     accuracy: number | null;
   }>;
+  openUrl(options: { url: string }): Promise<{ success: boolean }>;
 }
 
 export const NativeTorch = registerPlugin<NativeTorchPlugin>('NativeTorch');
@@ -326,6 +327,26 @@ class TorchController {
       }
     }
     return { latitude: null, longitude: null, altitude: null, accuracy: null };
+  }
+
+  public async openUrl(url: string): Promise<boolean> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const res = await NativeTorch.openUrl({ url });
+        return !!res.success;
+      } catch (err) {
+        console.warn('NativeTorch openUrl error:', err);
+      }
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return true;
+      } catch (err) {
+        console.warn('window.open error:', err);
+      }
+    }
+    return false;
   }
 
   /**

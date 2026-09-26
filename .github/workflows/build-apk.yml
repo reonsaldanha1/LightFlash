@@ -58,9 +58,9 @@ jobs:
       - name: Prepare APK Output
         run: |
           mkdir -p dist-apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical-v1.0.6.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical-v1.0.5.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical-v1.0.4.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical-v1.0.3.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk dist-apk/Lightflash-Tactical-latest.apk
 

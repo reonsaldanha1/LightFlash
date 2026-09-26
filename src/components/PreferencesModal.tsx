@@ -17,6 +17,7 @@ import {
   Layers,
   Radio,
   Sparkles,
+  Coffee,
 } from 'lucide-react';
 import {
   FlashlightMode,
@@ -47,6 +48,7 @@ interface PreferencesModalProps {
   // Callback when saved or reset
   onApplyPreferences: (prefs: UserPreferences) => void;
   isNightVision: boolean;
+  onOpenSupport?: () => void;
 }
 
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({
@@ -62,6 +64,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   currentSosAudioTone,
   onApplyPreferences,
   isNightVision,
+  onOpenSupport,
 }) => {
   const [justSaved, setJustSaved] = useState(false);
   const [justReset, setJustReset] = useState(false);
@@ -277,6 +280,20 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset to Recommended (Rear Flash & Night Vision Off)</span>
           </button>
+
+          {/* Support Developer */}
+          {onOpenSupport && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenSupport();
+              }}
+              className="w-full py-2.5 px-4 rounded-xl font-mono text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            >
+              <Coffee className="w-4 h-4 text-amber-400" />
+              <span>Support Developer (Buy Me a Coffee / UPI)</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

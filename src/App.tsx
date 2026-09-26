@@ -18,6 +18,7 @@ import {
   Check,
   Save,
   SlidersHorizontal,
+  Coffee,
 } from 'lucide-react';
 import {
   FlashlightMode,
@@ -36,6 +37,7 @@ import { NightModeToggle } from './components/NightModeToggle';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { MorseReferenceModal } from './components/MorseReferenceModal';
 import { PreferencesModal } from './components/PreferencesModal';
+import { SupportModal } from './components/SupportModal';
 import { NativeTorch, torchController } from './utils/torch';
 import {
   playTacticalClick,
@@ -96,6 +98,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'light' | 'strobe' | 'sos' | 'vault'>('light');
   const [showMorseRef, setShowMorseRef] = useState<boolean>(false);
   const [showPrefsModal, setShowPrefsModal] = useState<boolean>(false);
+  const [showSupportModal, setShowSupportModal] = useState<boolean>(false);
   const [saveNotification, setSaveNotification] = useState<string | null>(null);
   const [copiedCoords, setCopiedCoords] = useState<boolean>(false);
 
@@ -591,6 +594,18 @@ export default function App() {
               <span className="hidden sm:inline font-mono">Morse</span>
             </button>
 
+            <button
+              onClick={() => {
+                playTacticalClick(true);
+                setShowSupportModal(true);
+              }}
+              className="p-2 rounded-xl bg-slate-900/90 border border-amber-500/40 text-amber-300 hover:text-amber-200 hover:border-amber-400 active:scale-95 transition-all text-xs flex items-center gap-1.5"
+              title="Support Lightflash (Buy Me a Coffee / UPI)"
+            >
+              <Coffee className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline font-mono">Support</span>
+            </button>
+
             {/* Compass Heading Pill */}
             <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold ${
@@ -952,6 +967,40 @@ export default function App() {
           onToggleEcoMode={toggleEcoMode}
           isNightVision={isNightVision}
         />
+
+        {/* TACTICAL CREATOR SUPPORT & DONATION CARD */}
+        <div
+          onClick={() => {
+            playTacticalClick(true);
+            setShowSupportModal(true);
+          }}
+          className={`cursor-pointer p-4 rounded-2xl border transition-all select-none flex items-center justify-between active:scale-[0.99] ${
+            isNightVision
+              ? 'bg-red-950/40 border-red-900/70 hover:border-red-600 text-red-200'
+              : 'bg-slate-900/60 border-slate-800/90 hover:border-amber-500/50 text-slate-300'
+          }`}
+          title="Support Lightflash Development"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+              <Coffee className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold font-mono text-amber-300 flex items-center gap-2">
+                <span>SUPPORT LIGHTFLASH</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  CREATOR BACKING
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-400 font-mono">
+                Buy Me a Coffee or Scan UPI QR Code to Donate
+              </div>
+            </div>
+          </div>
+          <span className="text-xs font-mono text-amber-400 font-bold shrink-0 ml-2">
+            Donate →
+          </span>
+        </div>
       </main>
 
       {/* QUICK-ACCESS HOME SCREEN / URGENT ACTIVATION WIDGET */}
@@ -984,6 +1033,14 @@ export default function App() {
         currentStrobeAudioClick={strobeAudioClick}
         currentSosAudioTone={sosAudioTone}
         onApplyPreferences={handleApplyPreferences}
+        isNightVision={isNightVision}
+        onOpenSupport={() => setShowSupportModal(true)}
+      />
+
+      {/* CREATOR BACKING & SUPPORT MODAL (BUY ME A COFFEE / UPI QR CODE) */}
+      <SupportModal
+        isOpen={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
         isNightVision={isNightVision}
       />
     </div>

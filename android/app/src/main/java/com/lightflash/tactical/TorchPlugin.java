@@ -178,4 +178,23 @@ public class TorchPlugin extends Plugin {
         ret.put("success", false);
         call.resolve(ret);
     }
+
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        String url = call.getString("url", "");
+        if (url == null || url.isEmpty()) {
+            call.reject("URL cannot be empty");
+            return;
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Could not open URL: " + e.getMessage());
+        }
+    }
 }
