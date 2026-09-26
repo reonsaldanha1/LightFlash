@@ -539,10 +539,10 @@ export default function App() {
           paddingTop: 'max(env(safe-area-inset-top, 0px) + 8px, 42px)',
         }}
       >
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="max-w-xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center border font-black shadow-md ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border font-black shadow-md shrink-0 ${
                 isNightVision
                   ? 'bg-red-950 border-red-600 text-red-400'
                   : 'bg-amber-500/20 border-amber-500 text-amber-400'
@@ -550,13 +550,13 @@ export default function App() {
             >
               <Flashlight className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-black tracking-wider uppercase">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="text-sm sm:text-base font-black tracking-wider uppercase truncate">
                   LIGHTFLASH
                 </h1>
                 <span
-                  className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                  className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold whitespace-nowrap shrink-0 ${
                     isNightVision
                       ? 'bg-red-900 text-red-200 border border-red-700'
                       : 'bg-emerald-950 text-emerald-400 border border-emerald-700'
@@ -565,15 +565,15 @@ export default function App() {
                   OFFLINE E2EE
                 </span>
               </div>
-              <div className="text-[10px] font-mono text-slate-400">
+              <div className="text-[10px] font-mono text-slate-400 truncate">
                 Tactical Illumination & Survival Vault
               </div>
             </div>
           </div>
 
-          {/* Quick Compass, Morse Chart & Preferences Buttons (2 on row 1, 2 on row 2) */}
+          {/* Quick Header Actions: Prefs & Support on left, Morse taking two rows on right */}
           <div className="grid grid-cols-2 gap-1.5 shrink-0">
-            {/* Row 1: First 2 buttons */}
+            {/* Column 1, Row 1: Prefs */}
             <button
               onClick={() => {
                 playTacticalClick(true);
@@ -586,16 +586,20 @@ export default function App() {
               <span className="font-mono text-[11px]">Prefs</span>
             </button>
 
+            {/* Column 2, Rows 1 & 2: Morse (takes two rows) */}
             <button
-              onClick={() => setShowMorseRef(true)}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5"
+              onClick={() => {
+                playTacticalClick(true);
+                setShowMorseRef(true);
+              }}
+              className="row-span-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-amber-500/60 text-slate-300 hover:text-white active:scale-95 transition-all text-xs flex flex-col items-center justify-center gap-1 shadow-sm"
               title="International Morse Code Chart"
             >
-              <Radio className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-mono text-[11px]">Morse</span>
+              <Radio className="w-4 h-4 text-amber-400" />
+              <span className="font-mono text-[11px] font-bold">Morse</span>
             </button>
 
-            {/* Row 2: Last 2 buttons */}
+            {/* Column 1, Row 2: Support */}
             <button
               onClick={() => {
                 playTacticalClick(true);
@@ -607,20 +611,6 @@ export default function App() {
               <Coffee className="w-3.5 h-3.5 text-amber-400" />
               <span className="font-mono text-[11px]">Support</span>
             </button>
-
-            {/* Compass Heading Pill */}
-            <div
-              className={`flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl border text-[11px] font-mono font-bold ${
-                isNightVision
-                  ? 'bg-red-950/80 border-red-800 text-red-300'
-                  : 'bg-slate-900/80 border-slate-700 text-amber-400'
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>
-                {heading !== null ? `${heading}° ${cardinal}` : 'COMPASS'}
-              </span>
-            </div>
           </div>
         </div>
       </header>
@@ -638,22 +628,37 @@ export default function App() {
         {/* PWA Install Banner */}
         <PWAInstallBanner />
 
-        {/* Tactical HUD: GPS & Sensor Bar */}
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-slate-300">
+        {/* Tactical HUD: GPS & Sensor Telemetry Bar (Coordinates + Compass) */}
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-slate-300 truncate text-[11px] sm:text-xs">
               {gps.latitude !== null && gps.longitude !== null
                 ? `${gps.latitude.toFixed(4)}°, ${gps.longitude.toFixed(4)}° (±${gps.accuracy}m)`
                 : 'Searching GPS constellation...'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Compass Heading Pill moved to telemetry row */}
+            <div
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] sm:text-[11px] font-mono font-bold ${
+                isNightVision
+                  ? 'bg-red-950/80 border-red-800 text-red-300'
+                  : 'bg-slate-900/90 border-slate-700 text-amber-400'
+              }`}
+              title="Current Compass Direction & Heading"
+            >
+              <Compass className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>
+                {heading !== null ? `${heading}° ${cardinal}` : 'COMPASS'}
+              </span>
+            </div>
+
             <button
               onClick={refreshLocation}
               disabled={gpsLoading}
-              className="text-slate-400 hover:text-white"
+              className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors"
               title="Refresh GPS"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
