@@ -447,6 +447,31 @@ export default function App() {
     }
   };
 
+  // Manual GPS Constellation Refresh Handler
+  const handleRefreshGps = async () => {
+    playTacticalClick(true);
+    setSaveNotification('Acquiring GPS fix from constellation...');
+    try {
+      const updated = await refreshLocation();
+      if (updated && updated.latitude !== null && updated.longitude !== null) {
+        setSaveNotification(
+          `GPS Acquired: ${updated.latitude.toFixed(4)}°, ${updated.longitude.toFixed(4)}° (±${updated.accuracy ?? 0}m)`
+        );
+      } else if (gps.latitude !== null && gps.longitude !== null) {
+        setSaveNotification(
+          `GPS Active: ${gps.latitude.toFixed(4)}°, ${gps.longitude.toFixed(4)}° (±${gps.accuracy ?? 0}m)`
+        );
+      } else {
+        setSaveNotification('GPS Refreshed: Constellation active');
+      }
+    } catch {
+      setSaveNotification('GPS Refresh: Showing cached fix');
+    }
+    setTimeout(() => {
+      setSaveNotification(null);
+    }, 3200);
+  };
+
   // Save current preferences to persistent storage
   const handleSavePreferences = useCallback((showToast = true) => {
     const prefsToSave: Omit<UserPreferences, 'lastSavedAt'> = {
@@ -631,10 +656,16 @@ export default function App() {
         {/* Tactical HUD: GPS & Sensor Telemetry Bar (Coordinates + Compass) */}
         <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono gap-1.5">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                gpsLoading ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'
+              }`}
+            />
             <span className="text-slate-300 truncate text-[11px] sm:text-xs">
               {gps.latitude !== null && gps.longitude !== null
-                ? `${gps.latitude.toFixed(4)}°, ${gps.longitude.toFixed(4)}° (±${gps.accuracy}m)`
+                ? `${gps.latitude.toFixed(4)}°, ${gps.longitude.toFixed(4)}° (±${gps.accuracy ?? 0}m)`
+                : gpsLoading
+                ? 'Acquiring GPS fix...'
                 : 'Searching GPS constellation...'}
             </span>
           </div>
@@ -655,17 +686,25 @@ export default function App() {
               </span>
             </div>
 
+            {/* Refresh GPS Button with tactical click, spinner animation, and touch feedback */}
             <button
-              onClick={refreshLocation}
+              onClick={handleRefreshGps}
               disabled={gpsLoading}
-              className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors"
-              title="Refresh GPS"
+              className={`p-1.5 rounded-lg border transition-all flex items-center justify-center active:scale-90 ${
+                gpsLoading
+                  ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
+                  : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 hover:bg-slate-800/80'
+              }`}
+              title="Refresh GPS Constellation Coordinates"
+              aria-label="Refresh GPS Constellation"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin text-amber-400' : ''}`} />
             </button>
+
+            {/* Share Coordinates Button */}
             <button
               onClick={handleShareLocation}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 active:scale-95 transition-all"
+              className="p-1.5 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 hover:bg-slate-800/80 active:scale-90 transition-all flex items-center justify-center"
               title="Share Location & Coordinates"
               aria-label="Share Location"
             >

@@ -136,10 +136,28 @@ public class TorchPlugin extends Plugin {
             LocationManager lm = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
             if (lm != null) {
                 Location loc = null;
-                if (getContext().checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    if (loc == null) {
-                        loc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                boolean hasFine = getContext().checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+                boolean hasCoarse = getContext().checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+                if (hasFine || hasCoarse) {
+                    Location gpsLoc = null;
+                    Location netLoc = null;
+                    Location passLoc = null;
+                    Location fusedLoc = null;
+
+                    try { gpsLoc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER); } catch (Exception ignored) {}
+                    try { netLoc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER); } catch (Exception ignored) {}
+                    try { passLoc = lm.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER); } catch (Exception ignored) {}
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        try { fusedLoc = lm.getLastKnownLocation(LocationManager.FUSED_PROVIDER); } catch (Exception ignored) {}
+                    }
+
+                    Location[] candidates = new Location[]{ gpsLoc, netLoc, fusedLoc, passLoc };
+                    for (Location c : candidates) {
+                        if (c != null) {
+                            if (loc == null || c.getTime() > loc.getTime()) {
+                                loc = c;
+                            }
+                        }
                     }
                 }
                 if (loc != null) {
